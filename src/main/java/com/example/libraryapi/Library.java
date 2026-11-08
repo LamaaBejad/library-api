@@ -2,57 +2,51 @@ package com.example.libraryapi;
 
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 public class Library {
 
-    private final ArrayList<Book> books = new ArrayList<>();
+    private final BookRepository bookRepository;
 
-    public Library() {
-        books.add(new Book("Clean Code"));
-        books.add(new Book("Effective Java"));
+    public Library(BookRepository bookRepository) {
+        this.bookRepository = bookRepository;
     }
 
-    public ArrayList<Book> getBooks() {
-        return books;
+    public List<Book> getBooks() {
+        return bookRepository.findAll();
     }
 
     public Book addBook(Book book) {
-        books.add(book);
-        return book;
-    }
-
-    private Book findBook(String title) {
-        for (Book book : books) {
-            if (book.getTitle().equalsIgnoreCase(title)) {
-                return book;
-            }
-        }
-        return null;
+        return bookRepository.save(book);
     }
 
     public String borrowBook(String title) {
-        Book book = findBook(title);
-        if (book == null) {
+        Optional<Book> found = bookRepository.findByTitleIgnoreCase(title);
+        if (found.isEmpty()) {
             return "Book not found";
         }
+        Book book = found.get();
         if (!book.isAvailable()) {
             return "Book is already borrowed";
         }
         book.setAvailable(false);
+        bookRepository.save(book);
         return "Book borrowed";
     }
 
     public String returnBook(String title) {
-        Book book = findBook(title);
-        if (book == null) {
+        Optional<Book> found = bookRepository.findByTitleIgnoreCase(title);
+        if (found.isEmpty()) {
             return "Book not found";
         }
+        Book book = found.get();
         if (book.isAvailable()) {
             return "Book was not borrowed";
         }
         book.setAvailable(true);
+        bookRepository.save(book);
         return "Book returned";
     }
 }

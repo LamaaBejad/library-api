@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 
-import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 public class BookController {
@@ -19,7 +19,7 @@ public class BookController {
     }
 
     @GetMapping("/books")
-    public ArrayList<Book> getBooks() {
+    public List<Book> getBooks() {
         return library.getBooks();
     }
 
