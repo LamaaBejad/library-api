@@ -22,4 +22,37 @@ public class Library {
         books.add(book);
         return book;
     }
+
+    private Book findBook(String title) {
+        for (Book book : books) {
+            if (book.getTitle().equalsIgnoreCase(title)) {
+                return book;
+            }
+        }
+        return null;
+    }
+
+    public String borrowBook(String title) {
+        Book book = findBook(title);
+        if (book == null) {
+            return "Book not found";
+        }
+        if (!book.isAvailable()) {
+            return "Book is already borrowed";
+        }
+        book.setAvailable(false);
+        return "Book borrowed";
+    }
+
+    public String returnBook(String title) {
+        Book book = findBook(title);
+        if (book == null) {
+            return "Book not found";
+        }
+        if (book.isAvailable()) {
+            return "Book was not borrowed";
+        }
+        book.setAvailable(true);
+        return "Book returned";
+    }
 }
