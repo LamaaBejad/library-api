@@ -2,7 +2,7 @@
 
 A library management REST API built with **Java 21** and **Spring Boot**, with a simple web page to browse, borrow, return and delete books, plus AI-generated book summaries.
 
-![Library page](docs/screenshot.png)
+![Library page](docs/library-ai.png)
 
 ## Features
 - List, add and delete books
@@ -52,6 +52,10 @@ Data is stored in an H2 database through Spring Data JPA:
 REST endpoints in `BookController`:
 
 ![BookController](docs/controller.png)
+
+`GET /books/{id}/summary` returns an AI-generated summary:
+
+![AI summary endpoint](docs/api-summary.png)
 
 ## Run locally
 Requirements: Java 21.
