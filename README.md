@@ -33,6 +33,19 @@ Example request body for `POST /books`:
 ```json
 { "title": "Clean Code", "author": "Robert C. Martin" }
 ```
+## Backend in action
+
+`GET /books` returns the books as JSON:
+
+![API response](docs/api-books.png)
+
+Data is stored in an H2 database through Spring Data JPA:
+
+![Database](docs/database.png)
+
+REST endpoints in `BookController`:
+
+![BookController](docs/controller.png)
 
 ## Run locally
 Requirements: Java 21.
