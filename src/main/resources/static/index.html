@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Library</title>
+    <style>
+        :root { --bg:#faf6f0; --ink:#2b2118; --muted:#8a7a6a; --line:#eadfd1; --brand:#7c4a2d; --ok:#2f7d4f; --warn:#b4531a; }
+        * { box-sizing: border-box; }
+        body { margin:0; background:var(--bg); color:var(--ink); font-family:"Segoe UI",Helvetica,Arial,sans-serif; }
+        .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+        .hero { padding-top: 44px; padding-bottom: 24px; text-align: center; }
+        h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: 40px; letter-spacing: .5px; }
+        header p { margin: 8px 0 0; color: var(--muted); }
+        form { display:flex; gap:10px; max-width: 560px; margin: 26px auto 0; }
+        input { flex:1; padding: 13px 16px; border:1px solid var(--line); border-radius: 999px; font-size:15px; background:#fff; }
+        button { display:inline-flex; align-items:center; justify-content:center; gap:6px; border:0; border-radius:999px; padding: 11px 18px; font-size:14px; cursor:pointer; background:var(--brand); color:#fff; }
+        button:hover { opacity:.92; }
+        svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+        .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 22px; padding: 34px 0 60px; }
+        .item { background:#fff; border:1px solid var(--line); border-radius:16px; padding:14px; display:flex; flex-direction:column; gap:12px; box-shadow: 0 6px 18px rgba(80,50,20,.06); }
+        .cover { height: 170px; border-radius: 4px 12px 12px 4px; padding: 16px 14px 14px 22px; color:#fff; display:flex; flex-direction:column; justify-content:space-between; position:relative; box-shadow: inset 8px 0 0 rgba(0,0,0,.18); }
+        .cover .t { padding-right: 36px; font-family: Georgia, serif; font-size: 19px; line-height: 1.2; font-weight: 700; }
+        .cover svg { opacity: .8; width: 22px; height: 22px; }
+        .row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+        .badge { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600; padding:4px 10px; border-radius:999px; }
+        .badge svg { width:13px; height:13px; }
+        .badge.ok { background:#e6f4ea; color:var(--ok); }
+        .badge.no { background:#fdeee3; color:var(--warn); }
+        button.ghost { background:#f3ebe2; color:var(--brand); padding: 8px 12px; font-size: 13px; }
+        button.del { position:absolute; top:8px; right:8px; padding:6px; border-radius:8px; background:rgba(255,255,255,.18); color:#fff; }
+        button.del:hover { background:rgba(255,255,255,.32); }
+        .empty { grid-column: 1 / -1; text-align:center; color:var(--muted); padding: 30px; }
+    </style>
+</head>
+<body>
+<header class="wrap hero">
+    <h1>The Library</h1>
+    <p>Browse, borrow and return books</p>
+    <form id="addForm">
+        <input id="titleInput" placeholder="Add a new book title..." required>
+        <button type="submit" id="addBtn"></button>
+    </form>
+</header>
+<main class="wrap"><div class="grid" id="list"></div></main>
+
+<script>
+    const ICONS = {
+        book:   '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+        check:  '<circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/>',
+        clock:  '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+        borrow: '<path d="M5 12h14"/><path d="M12 5l7 7-7 7"/>',
+        back:   '<path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/>',
+        plus:   '<path d="M12 5v14"/><path d="M5 12h14"/>',
+        trash:  '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/>'
+    };
+    const COLORS = ['#7c4a2d','#2f5d62','#6b3f69','#8a5a00','#364f6b','#7a2e3a'];
+    function icon(n) { return '<svg viewBox="0 0 24 24">' + ICONS[n] + '</svg>'; }
+    document.getElementById('addBtn').innerHTML = icon('plus') + 'Add';
+    const list = document.getElementById('list');
+
+    async function load() {
+        const res = await fetch('/books');
+        const books = await res.json();
+        list.innerHTML = '';
+        if (books.length === 0) { list.innerHTML = '<div class="empty">No books yet</div>'; return; }
+        for (const b of books) {
+            const item = document.createElement('div');
+            item.className = 'item';
+
+            const cover = document.createElement('div');
+            cover.className = 'cover';
+            cover.style.background = COLORS[b.id % COLORS.length];
+            const t = document.createElement('div');
+            t.className = 't';
+            t.textContent = b.title;
+            cover.appendChild(t);
+            cover.insertAdjacentHTML('beforeend', icon('book'));
+
+            const del = document.createElement('button');
+            del.className = 'del';
+            del.title = 'Delete';
+            del.innerHTML = icon('trash');
+            del.onclick = async () => {
+                await fetch('/books/' + b.id, {method: 'DELETE'});
+                load();
+            };
+            cover.appendChild(del);
+
+            const row = document.createElement('div');
+            row.className = 'row';
+            const badge = document.createElement('span');
+            badge.className = 'badge ' + (b.available ? 'ok' : 'no');
+            badge.innerHTML = icon(b.available ? 'check' : 'clock') + (b.available ? 'Available' : 'Borrowed');
+            const btn = document.createElement('button');
+            btn.className = 'ghost';
+            btn.innerHTML = icon(b.available ? 'borrow' : 'back') + (b.available ? 'Borrow' : 'Return');
+            btn.onclick = async () => {
+                await fetch('/books/' + encodeURIComponent(b.title) + '/' + (b.available ? 'borrow' : 'return'), {method: 'PUT'});
+                load();
+            };
+            row.appendChild(badge);
+            row.appendChild(btn);
+
+            item.appendChild(cover);
+            item.appendChild(row);
+            list.appendChild(item);
+        }
+    }
+
+    document.getElementById('addForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const input = document.getElementById('titleInput');
+        await fetch('/books', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: input.value.trim() }) });
+        input.value = '';
+        load();
+    });
+    load();
+</script>
+</body>
+</html>

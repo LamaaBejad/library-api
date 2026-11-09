@@ -49,4 +49,7 @@ public class Library {
         bookRepository.save(book);
         return "Book returned";
     }
+    public void deleteBook(Long id) {
+        bookRepository.deleteById(id);
+    }
 }

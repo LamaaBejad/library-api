@@ -1,11 +1,6 @@
 package com.example.libraryapi;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -35,5 +30,9 @@ public class BookController {
     @PutMapping("/books/{title}/return")
     public String returnBook(@PathVariable String title) {
         return library.returnBook(title);
+    }
+    @DeleteMapping("/books/{id}")
+    public void deleteBook(@PathVariable Long id) {
+        library.deleteBook(id);
     }
 }
