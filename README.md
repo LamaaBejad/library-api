@@ -1,12 +1,13 @@
 # Library API
 
-A library management REST API built with **Java 21** and **Spring Boot**, with a simple web page to browse, borrow, return and delete books.
+A library management REST API built with **Java 21** and **Spring Boot**, with a simple web page to browse, borrow, return and delete books, plus AI-generated book summaries.
 
 ![Library page](docs/screenshot.png)
 
 ## Features
 - List, add and delete books
 - Borrow and return a book (availability is tracked)
+- AI-generated book summaries powered by Gemini
 - Data is stored in a file-based H2 database, so it survives restarts
 - Sample books are added automatically on first run
 - Simple HTML page served by Spring Boot
@@ -15,10 +16,13 @@ A library management REST API built with **Java 21** and **Spring Boot**, with a
 - Java 21, Spring Boot, Maven
 - Spring Web (REST), Spring Data JPA / Hibernate
 - H2 database
+- Gemini API (called from the backend with `RestClient`)
 - HTML, CSS and JavaScript (single page)
 
 ## Architecture
 `Controller` (HTTP requests) -> `Library` service (business logic) -> `BookRepository` (database)
+
+`GeminiService` calls the Gemini API to summarize a book.
 
 ## API endpoints
 | Method | Endpoint | Description |
@@ -28,11 +32,13 @@ A library management REST API built with **Java 21** and **Spring Boot**, with a
 | PUT | `/books/{title}/borrow` | Borrow a book |
 | PUT | `/books/{title}/return` | Return a book |
 | DELETE | `/books/{id}` | Delete a book |
+| GET | `/books/{id}/summary` | AI-generated summary of a book |
 
 Example request body for `POST /books`:
 ```json
 { "title": "Clean Code", "author": "Robert C. Martin" }
 ```
+
 ## Backend in action
 
 `GET /books` returns the books as JSON:
@@ -55,6 +61,8 @@ Requirements: Java 21.
 ```
 Then open http://localhost:8080
 
+To enable AI summaries, set a `GEMINI_API_KEY` environment variable with your own Gemini API key. The rest of the app works without it.
+
 ## Roadmap
-- [ ] AI-generated book summaries
+- [x] AI-generated book summaries
 - [ ] Deployment to AWS
