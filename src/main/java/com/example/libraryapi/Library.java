@@ -52,4 +52,7 @@ public class Library {
     public void deleteBook(Long id) {
         bookRepository.deleteById(id);
     }
+    public Book getBook(Long id) {
+        return bookRepository.findById(id).orElseThrow();
+    }
 }
