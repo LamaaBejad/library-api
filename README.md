@@ -2,7 +2,7 @@
 
 A library management REST API built with **Java 21** and **Spring Boot**, with a web page to browse, borrow and return books, **user accounts with login**, and AI-generated book summaries.
 
-**Live demo:** http://16.16.148.122:8080 (deployed on AWS EC2, demo mode, plain HTTP for now, so please don't use a real password)
+**Live demo:** http://smart-library.duckdns.org:8080 (deployed on AWS EC2, demo mode, plain HTTP for now, so please don't use a real password)
 
 ![Library page](docs/library-ai.png)
 
@@ -24,6 +24,7 @@ A library management REST API built with **Java 21** and **Spring Boot**, with a
 - Gemini API (called from the backend with `RestClient`)
 - HTML, CSS and JavaScript (single page)
 - AWS EC2 (Amazon Linux 2023) for hosting
+- DuckDNS for a free domain name
 
 ## Architecture
 `Controller` (HTTP requests) -> `Library` service (business logic) -> `BookRepository` (database)
@@ -50,7 +51,7 @@ A library management REST API built with **Java 21** and **Spring Boot**, with a
 
 Example request body for `POST /register`:
 ```json
-{ "username": "lama_demo", "password": "secret123" }
+{ "username": "demo_user", "password": "secret123" }
 ```
 
 ## Backend in action
@@ -104,14 +105,14 @@ To enable AI summaries, set a `GEMINI_API_KEY` environment variable with your ow
 ## Deployment
 The app runs on an AWS EC2 instance (Amazon Linux 2023, Java 21 Corretto):
 - Built on the server with the Maven wrapper and started as a background process
-- A fixed Elastic IP keeps the URL stable
+- A fixed Elastic IP keeps the address stable, and a free DuckDNS name points to it
 - Security group: port 8080 open to the public, SSH restricted to AWS EC2 Instance Connect
 - `GEMINI_API_KEY` and `DEMO_MODE` are set as environment variables on the server
 
 The live demo runs on a limited AWS free plan, so the link may be taken down later. The screenshots above show the app running.
 
 ## What I'd improve
-- Add HTTPS with a domain name and a reverse proxy (login currently runs over plain HTTP, which is why the demo asks users not to use a real password)
+- Add HTTPS (login currently runs over plain HTTP, which is why the demo asks users not to use a real password)
 - Email verification and password reset
 - Enable CSRF protection (currently disabled to keep the JSON API simple)
 - Better error handling (for example, a proper `/error` response instead of 401 for server errors) and unit tests
@@ -122,6 +123,7 @@ The live demo runs on a limited AWS free plan, so the link may be taken down lat
 - [x] AI-generated book summaries
 - [x] Deployment to AWS
 - [x] User accounts, login and per-user borrows
-- [ ] HTTPS and a domain name
+- [x] Domain name (DuckDNS)
+- [ ] HTTPS
 - [ ] PostgreSQL
 - [ ] Unit tests
