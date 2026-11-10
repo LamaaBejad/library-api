@@ -37,13 +37,32 @@
         .filters { display:flex; justify-content:center; gap:8px; margin-top:22px; flex-wrap:wrap; }
         button.tab { background:#fff; color:var(--brand); border:1px solid var(--line); padding:8px 16px; font-size:13px; }
         button.tab.active { background:var(--brand); color:#fff; border-color:var(--brand); }
+        .topbar { display:flex; justify-content:flex-end; align-items:center; gap:10px; padding-top:16px; min-height:56px; font-size:14px; }
+        .topbar .who { color:var(--muted); }
+        button.link { background:#fff; color:var(--brand); border:1px solid var(--line); padding:8px 16px; font-size:13px; }
+        #authForm { display:none; flex-direction:column; gap:10px; max-width:360px; margin:6px auto 0; background:#fff; border:1px solid var(--line); border-radius:16px; padding:16px; box-shadow:0 6px 18px rgba(80,50,20,.06); }
+        #authForm input { border-radius:12px; }
+        #authForm .btns { display:flex; gap:8px; }
+        #authForm .btns button { flex:1; }
+        button.secondary { background:#f3ebe2; color:var(--brand); }
+        .msg { font-size:13px; color:var(--warn); text-align:center; min-height:16px; }
         .empty { grid-column: 1 / -1; text-align:center; color:var(--muted); padding: 30px; }
     </style>
 </head>
 <body>
 <header class="wrap hero">
+    <div class="topbar" id="topbar"></div>
     <h1>The Library</h1>
     <p>Browse, borrow and return books</p>
+    <form id="authForm">
+        <div class="msg" id="authMsg"></div>
+        <input id="userInput" placeholder="Username" autocomplete="username" required>
+        <input id="passInput" type="password" placeholder="Password (6+ characters)" autocomplete="current-password" required>
+        <div class="btns">
+            <button type="submit" id="loginBtn">Log in</button>
+            <button type="button" id="signupBtn" class="secondary">Create account</button>
+        </div>
+    </form>
     <form id="addForm">
         <input id="titleInput" placeholder="Add a new book title..." required>
         <button type="submit" id="addBtn"></button>
@@ -70,17 +89,61 @@
 
     let demo = false;
     let filter = 'all';
+    let me = null;
+    let mineIds = new Set();
+
+    function showAuth(message) {
+        const form = document.getElementById('authForm');
+        form.style.display = 'flex';
+        document.getElementById('authMsg').textContent = message || '';
+        document.getElementById('userInput').focus();
+    }
+    function hideAuth() {
+        document.getElementById('authForm').style.display = 'none';
+        document.getElementById('authMsg').textContent = '';
+        document.getElementById('passInput').value = '';
+    }
+
+    function renderTopbar() {
+        const bar = document.getElementById('topbar');
+        bar.innerHTML = '';
+        if (me) {
+            const who = document.createElement('span');
+            who.className = 'who';
+            who.textContent = 'Hi, ' + me;
+            const out = document.createElement('button');
+            out.className = 'link';
+            out.textContent = 'Log out';
+            out.onclick = async () => {
+                await fetch('/logout', { method: 'POST' });
+                me = null;
+                if (filter === 'mine') filter = 'all';
+                await refresh();
+            };
+            bar.appendChild(who);
+            bar.appendChild(out);
+        } else {
+            const inn = document.createElement('button');
+            inn.className = 'link';
+            inn.textContent = 'Log in / Sign up';
+            inn.onclick = () => showAuth('');
+            bar.appendChild(inn);
+        }
+        document.getElementById('addForm').style.display = (!demo && me) ? 'flex' : 'none';
+    }
 
     function renderFilters(books) {
         const counts = {
             all: books.length,
             available: books.filter(b => b.available).length,
-            borrowed: books.filter(b => !b.available).length
+            borrowed: books.filter(b => !b.available).length,
+            mine: mineIds.size
         };
-        const labels = { all: 'All', available: 'Available', borrowed: 'Borrowed' };
+        const labels = { all: 'All', available: 'Available', borrowed: 'Borrowed', mine: 'My books' };
+        const keys = me ? ['all', 'available', 'borrowed', 'mine'] : ['all', 'available', 'borrowed'];
         const box = document.getElementById('filters');
         box.innerHTML = '';
-        for (const key of ['all', 'available', 'borrowed']) {
+        for (const key of keys) {
             const tab = document.createElement('button');
             tab.type = 'button';
             tab.className = 'tab' + (filter === key ? ' active' : '');
@@ -89,31 +152,57 @@
             box.appendChild(tab);
         }
     }
+
+    async function checkMe() {
+        try {
+            const r = await (await fetch('/me')).json();
+            me = r.loggedIn ? r.username : null;
+        } catch (e) { me = null; }
+    }
+
+    async function refresh() {
+        renderTopbar();
+        await load();
+    }
+
     async function init() {
         try {
             const c = await (await fetch('/config')).json();
             demo = c.demo;
         } catch (e) {}
         if (demo) {
-            document.getElementById('addForm').style.display = 'none';
             document.querySelector('header p').textContent = 'Browse, borrow and return books · Demo mode';
         }
-        load();
+        await checkMe();
+        await refresh();
     }
 
     async function load() {
         const res = await fetch('/books');
         const allBooks = await res.json();
+        mineIds = new Set();
+        if (me) {
+            try {
+                const r = await fetch('/books/mine');
+                if (r.ok) (await r.json()).forEach(b => mineIds.add(b.id));
+            } catch (e) {}
+        }
         renderFilters(allBooks);
-        const books = allBooks.filter(b =>
-            filter === 'all' || (filter === 'available' ? b.available : !b.available));
+        const books = allBooks.filter(b => {
+            if (filter === 'all') return true;
+            if (filter === 'available') return b.available;
+            if (filter === 'borrowed') return !b.available;
+            return mineIds.has(b.id);
+        });
         list.innerHTML = '';
         if (books.length === 0) {
-            list.innerHTML = '<div class="empty">' +
-                (allBooks.length === 0 ? 'No books yet' : 'No ' + filter + ' books') + '</div>';
+            const label = filter === 'mine' ? 'You have not borrowed any books yet'
+                : (allBooks.length === 0 ? 'No books yet' : 'No ' + filter + ' books');
+            list.innerHTML = '<div class="empty">' + label + '</div>';
             return;
         }
         for (const b of books) {
+            const isMine = mineIds.has(b.id);
             const item = document.createElement('div');
             item.className = 'item';
 
@@ -142,22 +231,28 @@
                 await fetch('/books/' + b.id, { method: 'DELETE' });
                 load();
             };
-            if (!demo) cover.appendChild(del);
+            if (!demo && me) cover.appendChild(del);
 
             const row = document.createElement('div');
             row.className = 'row';
             const badge = document.createElement('span');
             badge.className = 'badge ' + (b.available ? 'ok' : 'no');
-            badge.innerHTML = icon(b.available ? 'check' : 'clock') + (b.available ? 'Available' : 'Borrowed');
-            const btn = document.createElement('button');
-            btn.className = 'ghost';
-            btn.innerHTML = icon(b.available ? 'borrow' : 'back') + (b.available ? 'Borrow' : 'Return');
-            btn.onclick = async () => {
-                await fetch('/books/' + encodeURIComponent(b.title) + '/' + (b.available ? 'borrow' : 'return'), { method: 'PUT' });
-                load();
-            };
+            const badgeText = b.available ? 'Available' : (isMine ? 'Borrowed by you' : 'Borrowed');
+            badge.innerHTML = icon(b.available ? 'check' : 'clock') + badgeText;
             row.appendChild(badge);
-            row.appendChild(btn);
+
+            if (b.available || isMine) {
+                const btn = document.createElement('button');
+                btn.className = 'ghost';
+                btn.innerHTML = icon(b.available ? 'borrow' : 'back') + (b.available ? 'Borrow' : 'Return');
+                btn.onclick = async () => {
+                    if (!me) { showAuth('Please log in to borrow books'); return; }
+                    const r = await fetch('/books/' + encodeURIComponent(b.title) + '/' + (b.available ? 'borrow' : 'return'), { method: 'PUT' });
+                    if (r.status === 401) { me = null; await refresh(); showAuth('Your session ended, please log in again'); return; }
+                    load();
+                };
+                row.appendChild(btn);
+            }
 
             const ai = document.createElement('button');
             ai.className = 'ai';
@@ -186,6 +281,51 @@
             list.appendChild(item);
         }
     }
+
+    async function doLogin(username, password) {
+        const r = await fetch('/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ username, password })
+        });
+        return r.ok;
+    }
+
+    document.getElementById('authForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('userInput').value.trim();
+        const password = document.getElementById('passInput').value;
+        if (await doLogin(username, password)) {
+            hideAuth();
+            await checkMe();
+            await refresh();
+        } else {
+            document.getElementById('authMsg').textContent = 'Wrong username or password';
+        }
+    });
+
+    document.getElementById('signupBtn').addEventListener('click', async () => {
+        const username = document.getElementById('userInput').value.trim();
+        const password = document.getElementById('passInput').value;
+        const msg = document.getElementById('authMsg');
+        if (!username || !password) { msg.textContent = 'Enter a username and password first'; return; }
+        const r = await fetch('/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        if (!r.ok) {
+            let data = {};
+            try { data = await r.json(); } catch (e) {}
+            msg.textContent = data.error || 'Could not create the account';
+            return;
+        }
+        if (await doLogin(username, password)) {
+            hideAuth();
+            await checkMe();
+            await refresh();
+        }
+    });
 
     document.getElementById('addForm').addEventListener('submit', async (e) => {
         e.preventDefault();

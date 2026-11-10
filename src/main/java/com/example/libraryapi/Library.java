@@ -18,11 +18,17 @@ public class Library {
         return bookRepository.findAll();
     }
 
+    public List<Book> getBooksBorrowedBy(String username) {
+        return bookRepository.findAll().stream()
+                .filter(b -> username.equals(b.getBorrowedBy()))
+                .toList();
+    }
+
     public Book addBook(Book book) {
         return bookRepository.save(book);
     }
 
-    public String borrowBook(String title) {
+    public String borrowBook(String title, String username) {
         Optional<Book> found = bookRepository.findByTitleIgnoreCase(title);
         if (found.isEmpty()) {
             return "Book not found";
@@ -32,11 +38,12 @@ public class Library {
             return "Book is already borrowed";
         }
         book.setAvailable(false);
+        book.setBorrowedBy(username);
         bookRepository.save(book);
         return "Book borrowed";
     }
 
-    public String returnBook(String title) {
+    public String returnBook(String title, String username) {
         Optional<Book> found = bookRepository.findByTitleIgnoreCase(title);
         if (found.isEmpty()) {
             return "Book not found";
@@ -45,13 +52,19 @@ public class Library {
         if (book.isAvailable()) {
             return "Book was not borrowed";
         }
+        if (book.getBorrowedBy() != null && !book.getBorrowedBy().equals(username)) {
+            return "You can only return books you borrowed";
+        }
         book.setAvailable(true);
+        book.setBorrowedBy(null);
         bookRepository.save(book);
         return "Book returned";
     }
+
     public void deleteBook(Long id) {
         bookRepository.deleteById(id);
     }
+
     public Book getBook(Long id) {
         return bookRepository.findById(id).orElseThrow();
     }
