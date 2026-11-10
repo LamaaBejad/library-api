@@ -64,6 +64,19 @@
     document.getElementById('addBtn').innerHTML = icon('plus') + 'Add';
     const list = document.getElementById('list');
 
+    let demo = false;
+    async function init() {
+        try {
+            const c = await (await fetch('/config')).json();
+            demo = c.demo;
+        } catch (e) {}
+        if (demo) {
+            document.getElementById('addForm').style.display = 'none';
+            document.querySelector('header p').textContent = 'Browse, borrow and return books · Demo mode';
+        }
+        load();
+    }
+
     async function load() {
         const res = await fetch('/books');
         const books = await res.json();
@@ -98,7 +111,7 @@
                 await fetch('/books/' + b.id, { method: 'DELETE' });
                 load();
             };
-            cover.appendChild(del);
+            if (!demo) cover.appendChild(del);
 
             const row = document.createElement('div');
             row.className = 'row';
@@ -150,7 +163,7 @@
         input.value = '';
         load();
     });
-    load();
+    init();
 </script>
 </body>
 </html>

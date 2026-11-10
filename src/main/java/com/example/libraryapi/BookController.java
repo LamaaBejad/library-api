@@ -1,6 +1,8 @@
 package com.example.libraryapi;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -10,10 +12,16 @@ public class BookController {
 
     private final Library library;
     private final GeminiService gemini;
+    private final boolean demoMode = "true".equals(System.getenv("DEMO_MODE"));
 
     public BookController(Library library, GeminiService gemini) {
         this.library = library;
         this.gemini = gemini;
+    }
+
+    @GetMapping("/config")
+    public Map<String, Boolean> config() {
+        return Map.of("demo", demoMode);
     }
 
     @GetMapping("/books")
@@ -23,6 +31,7 @@ public class BookController {
 
     @PostMapping("/books")
     public Book addBook(@RequestBody Book book) {
+        blockInDemo();
         return library.addBook(book);
     }
 
@@ -38,6 +47,7 @@ public class BookController {
 
     @DeleteMapping("/books/{id}")
     public void deleteBook(@PathVariable Long id) {
+        blockInDemo();
         library.deleteBook(id);
     }
 
@@ -46,5 +56,11 @@ public class BookController {
         Book book = library.getBook(id);
         String text = gemini.summarize(book.getTitle(), book.getAuthor());
         return Map.of("title", book.getTitle(), "summary", text);
+    }
+
+    private void blockInDemo() {
+        if (demoMode) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Disabled in demo mode");
+        }
     }
 }
