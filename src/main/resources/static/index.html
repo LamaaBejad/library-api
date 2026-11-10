@@ -34,6 +34,9 @@
         .summary { font-size:13px; line-height:1.55; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
         button.del { position:absolute; top:8px; right:8px; padding:6px; border-radius:8px; background:rgba(255,255,255,.18); color:#fff; }
         button.del:hover { background:rgba(255,255,255,.32); }
+        .filters { display:flex; justify-content:center; gap:8px; margin-top:22px; flex-wrap:wrap; }
+        button.tab { background:#fff; color:var(--brand); border:1px solid var(--line); padding:8px 16px; font-size:13px; }
+        button.tab.active { background:var(--brand); color:#fff; border-color:var(--brand); }
         .empty { grid-column: 1 / -1; text-align:center; color:var(--muted); padding: 30px; }
     </style>
 </head>
@@ -45,6 +48,7 @@
         <input id="titleInput" placeholder="Add a new book title..." required>
         <button type="submit" id="addBtn"></button>
     </form>
+    <div class="filters" id="filters"></div>
 </header>
 <main class="wrap"><div class="grid" id="list"></div></main>
 
@@ -65,6 +69,26 @@
     const list = document.getElementById('list');
 
     let demo = false;
+    let filter = 'all';
+
+    function renderFilters(books) {
+        const counts = {
+            all: books.length,
+            available: books.filter(b => b.available).length,
+            borrowed: books.filter(b => !b.available).length
+        };
+        const labels = { all: 'All', available: 'Available', borrowed: 'Borrowed' };
+        const box = document.getElementById('filters');
+        box.innerHTML = '';
+        for (const key of ['all', 'available', 'borrowed']) {
+            const tab = document.createElement('button');
+            tab.type = 'button';
+            tab.className = 'tab' + (filter === key ? ' active' : '');
+            tab.textContent = labels[key] + ' (' + counts[key] + ')';
+            tab.onclick = () => { filter = key; load(); };
+            box.appendChild(tab);
+        }
+    }
     async function init() {
         try {
             const c = await (await fetch('/config')).json();
@@ -79,9 +103,16 @@
 
     async function load() {
         const res = await fetch('/books');
-        const books = await res.json();
+        const allBooks = await res.json();
+        renderFilters(allBooks);
+        const books = allBooks.filter(b =>
+            filter === 'all' || (filter === 'available' ? b.available : !b.available));
         list.innerHTML = '';
-        if (books.length === 0) { list.innerHTML = '<div class="empty">No books yet</div>'; return; }
+        if (books.length === 0) {
+            list.innerHTML = '<div class="empty">' +
+                (allBooks.length === 0 ? 'No books yet' : 'No ' + filter + ' books') + '</div>';
+            return;
+        }
         for (const b of books) {
             const item = document.createElement('div');
             item.className = 'item';
