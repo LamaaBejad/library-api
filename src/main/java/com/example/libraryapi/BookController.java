@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +30,11 @@ public class BookController {
         return library.getBooks();
     }
 
+    @GetMapping("/books/mine")
+    public List<Book> myBooks(Principal principal) {
+        return library.getBooksBorrowedBy(requireUser(principal));
+    }
+
     @PostMapping("/books")
     public Book addBook(@RequestBody Book book) {
         blockInDemo();
@@ -36,13 +42,13 @@ public class BookController {
     }
 
     @PutMapping("/books/{title}/borrow")
-    public String borrowBook(@PathVariable String title) {
-        return library.borrowBook(title);
+    public String borrowBook(@PathVariable String title, Principal principal) {
+        return library.borrowBook(title, requireUser(principal));
     }
 
     @PutMapping("/books/{title}/return")
-    public String returnBook(@PathVariable String title) {
-        return library.returnBook(title);
+    public String returnBook(@PathVariable String title, Principal principal) {
+        return library.returnBook(title, requireUser(principal));
     }
 
     @DeleteMapping("/books/{id}")
@@ -56,6 +62,13 @@ public class BookController {
         Book book = library.getBook(id);
         String text = gemini.summarize(book.getTitle(), book.getAuthor());
         return Map.of("title", book.getTitle(), "summary", text);
+    }
+
+    private String requireUser(Principal principal) {
+        if (principal == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Please log in");
+        }
+        return principal.getName();
     }
 
     private void blockInDemo() {

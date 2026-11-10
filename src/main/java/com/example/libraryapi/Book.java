@@ -1,5 +1,6 @@
 package com.example.libraryapi;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -15,6 +16,7 @@ public class Book {
     private String title;
     private String author;
     private boolean available = true;
+    private String borrowedBy;
 
     public Book() {
     }
@@ -54,5 +56,14 @@ public class Book {
 
     public void setAvailable(boolean available) {
         this.available = available;
+    }
+
+    @JsonIgnore
+    public String getBorrowedBy() {
+        return borrowedBy;
+    }
+
+    public void setBorrowedBy(String borrowedBy) {
+        this.borrowedBy = borrowedBy;
     }
 }
